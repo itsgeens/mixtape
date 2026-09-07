@@ -37,6 +37,8 @@ export default function GuestLandingPage() {
 
   const handleStep1NameSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+    window.scrollTo(0, 0);
     setStep(2);
   };
 
@@ -110,13 +112,6 @@ export default function GuestLandingPage() {
             </p>
           </div>
         </div>
-
-        <Link
-          href="/admin"
-          className="text-xs bg-stone-900 hover:bg-stone-800 text-stone-400 px-3 py-1.5 rounded-xl border border-stone-800 transition-all"
-        >
-          Admin
-        </Link>
       </header>
 
       {/* Progress Steps */}
@@ -150,8 +145,10 @@ export default function GuestLandingPage() {
               value={guestName}
               onChange={(e) => setGuestName(e.target.value)}
               placeholder="Your name"
-              className="w-full bg-stone-950 border border-stone-700 rounded-xl px-4 py-3.5 text-sm text-stone-100 focus:outline-none focus:border-amber-400 font-sans"
+              className="w-full bg-stone-950 border border-stone-700 rounded-xl px-4 py-3.5 text-[16px] text-stone-100 focus:outline-none focus:border-amber-400 font-sans"
               required
+              autoComplete="name"
+              autoCorrect="off"
             />
 
             <button
@@ -285,20 +282,13 @@ export default function GuestLandingPage() {
             </p>
           </div>
 
-          <div className="pt-3 flex flex-col sm:flex-row gap-3 justify-center">
+          <div className="pt-3 flex justify-center">
             <button
               onClick={resetFlow}
-              className="bg-stone-800 hover:bg-stone-700 text-stone-200 font-bold text-xs px-5 py-3 rounded-xl border border-stone-700 transition-all"
+              className="bg-stone-800 hover:bg-stone-700 text-stone-200 font-bold text-xs px-6 py-3 rounded-xl border border-stone-700 transition-all"
             >
               Record Another 🎙️
             </button>
-            <Link
-              href="/admin"
-              className="bg-stone-100 hover:bg-white text-stone-950 font-bold text-xs px-5 py-3 rounded-xl shadow-lg transition-all flex justify-center items-center space-x-1.5"
-            >
-              <span>View Admin Tape</span>
-              <ArrowRight className="w-4 h-4" />
-            </Link>
           </div>
         </div>
       )}

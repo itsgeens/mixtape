@@ -28,25 +28,52 @@ export const PolaroidCapture: React.FC<PolaroidCaptureProps> = ({
       streamRef.current.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
     }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
     setCameraActive(false);
   }, []);
 
   const startCamera = async () => {
     setErrorMsg(null);
+    // iOS requires secure context + user gesture; also needs simple constraints
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setErrorMsg('Camera not supported on this browser. You can still submit your audio note!');
+      return;
+    }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 640 } },
+        video: { facingMode: 'user' },
         audio: false,
       });
       streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-      }
+      // Don't set srcObject here — video element not mounted yet when cameraActive is false
       setCameraActive(true);
-    } catch {
-      setErrorMsg('Camera access unavailable. You can still submit your audio note!');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : '';
+      if (msg.includes('NotAllowedError') || msg.includes('Permission denied')) {
+        setErrorMsg('Camera permission denied. Please allow camera access in Settings > Safari and try again. You can still submit without a photo!');
+      } else if (msg.includes('NotFoundError')) {
+        setErrorMsg('No camera found on this device.');
+      } else {
+        setErrorMsg('Camera access unavailable. You can still submit your audio note!');
+      }
     }
   };
+
+  // Attach stream to video element AFTER it mounts (fixes iPhone black screen)
+  useEffect(() => {
+    if (!cameraActive || !videoRef.current || !streamRef.current) return;
+    const video = videoRef.current;
+    video.srcObject = streamRef.current;
+    // iOS Safari requires explicit play() after setting srcObject
+    const playPromise = video.play();
+    if (playPromise !== undefined) {
+      playPromise.catch(() => {
+        // Autoplay may be blocked — will play on next user interaction
+      });
+    }
+  }, [cameraActive]);
 
   useEffect(() => {
     return () => {
@@ -64,6 +91,10 @@ export const PolaroidCapture: React.FC<PolaroidCaptureProps> = ({
     if (!ctx) return;
 
     const size = Math.min(video.videoWidth || 400, video.videoHeight || 400);
+    if (size === 0) {
+      setErrorMsg('Camera not ready yet. Please wait a second and try again.');
+      return;
+    }
     canvas.width = size;
     canvas.height = size;
 
@@ -173,9 +204,11 @@ export const PolaroidCapture: React.FC<PolaroidCaptureProps> = ({
               autoPlay
               playsInline
               muted
+              webkit-playsinline="true"
               className="w-full h-full object-cover transform -scale-x-100"
             />
           </div>
+          {errorMsg && <p className="text-xs text-rose-400 mt-2">{errorMsg}</p>}
           <div className="mt-3 flex space-x-3">
             <button
               onClick={snapPhoto}
@@ -212,7 +245,7 @@ export const PolaroidCapture: React.FC<PolaroidCaptureProps> = ({
                 value={guestName}
                 onChange={(e) => onGuestNameChange?.(e.target.value)}
                 placeholder="Write your name here..."
-                className="w-full bg-transparent text-center text-slate-900 font-bold font-sans text-sm focus:outline-none placeholder:text-slate-400 placeholder:italic border-b border-stone-300 pb-0.5"
+                className="w-full bg-transparent text-center text-slate-900 font-bold font-sans text-[16px] focus:outline-none placeholder:text-slate-400 placeholder:italic border-b border-stone-300 pb-0.5"
               />
             </div>
           </div>
