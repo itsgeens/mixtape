@@ -2,15 +2,26 @@
 
 import React from 'react';
 import { RecordingState } from '@/types';
+import { StickerLabel } from './StickerLabel';
 
 interface SpinningReelsProps {
   state: RecordingState;
   progressPercent?: number;
+  guestName?: string;
+  promptText?: string;
+  stickerStage?: 'typing' | 'prompt' | 'recording' | 'photo' | 'stuck';
+  showSticker?: boolean;
+  coupleNames?: string;
 }
 
 export const SpinningReels: React.FC<SpinningReelsProps> = ({
   state,
   progressPercent = 0,
+  guestName,
+  promptText,
+  stickerStage = 'prompt',
+  showSticker = false,
+  coupleNames,
 }) => {
   const isSpinning = state === 'recording' || state === 'playing';
   const spinClass = isSpinning ? 'animate-spin-slow' : '';
@@ -36,25 +47,37 @@ export const SpinningReels: React.FC<SpinningReelsProps> = ({
         <div className="absolute top-2.5 left-3.5 w-2 h-2 rounded-full bg-stone-500/50 border border-stone-400/60 shadow-inner" />
         <div className="absolute top-2.5 right-3.5 w-2 h-2 rounded-full bg-stone-500/50 border border-stone-400/60 shadow-inner" />
 
-        {/* Label sticker area (sits above window) */}
-        <div
-          className="mx-4 mt-4 mb-1 rounded-lg px-3 py-1.5 text-center relative"
-          style={{
-            background: 'linear-gradient(135deg, #fef9ef 0%, #fdf6e3 50%, #f5edd5 100%)',
-            boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.15)',
-          }}
-        >
-          <div className="flex justify-between text-[8px] text-stone-500 font-mono tracking-widest">
-            <span>SIDE A · C-90</span>
-            <span className="text-rose-600 font-bold">STEREO</span>
+        {/* Label sticker area - now hosts animated handwritten sticker when provided */}
+        {showSticker && guestName !== undefined ? (
+          <div className="mx-3 mt-3 mb-2 relative z-20">
+            <StickerLabel
+              guestName={guestName}
+              promptText={promptText}
+              stage={stickerStage}
+              coupleNames={coupleNames}
+              isWriting={stickerStage === 'typing'}
+            />
           </div>
-          <div className="text-sm font-bold font-sans tracking-[0.15em] text-stone-900 uppercase leading-tight">
-            MIXTAPE MEMORIES
+        ) : (
+          <div
+            className="mx-4 mt-4 mb-1 rounded-lg px-3 py-1.5 text-center relative"
+            style={{
+              background: 'linear-gradient(135deg, #fef9ef 0%, #fdf6e3 50%, #f5edd5 100%)',
+              boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.15)',
+            }}
+          >
+            <div className="flex justify-between text-[8px] text-stone-500 font-mono tracking-widest">
+              <span>SIDE A · C-90</span>
+              <span className="text-rose-600 font-bold">STEREO</span>
+            </div>
+            <div className="text-sm font-bold font-sans tracking-[0.15em] text-stone-900 uppercase leading-tight">
+              MIXTAPE MEMORIES
+            </div>
+            <div className="text-[10px] text-stone-500 font-serif italic">
+              Digital Audio Guestbook
+            </div>
           </div>
-          <div className="text-[10px] text-stone-500 font-serif italic">
-            Digital Audio Guestbook
-          </div>
-        </div>
+        )}
 
         {/* Cassette window — the transparent oval/pill shape showing the tape reels */}
         <div className="mx-5 relative">

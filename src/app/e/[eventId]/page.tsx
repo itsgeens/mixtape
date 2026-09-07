@@ -5,11 +5,11 @@ import confetti from 'canvas-confetti';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Disc3, Heart, CheckCircle2, ArrowRight, UserCheck, ShieldCheck, RefreshCw } from 'lucide-react';
 import { CassetteDeck } from '@/components/cassette/CassetteDeck';
+import { StickerLabel } from '@/components/cassette/StickerLabel';
 import { PolaroidCapture } from '@/components/polaroid/PolaroidCapture';
 import { uploadRecording, fetchPrompts, fetchEventById, DEFAULT_EVENT } from '@/lib/storage-service';
 import { Prompt, EventConfig } from '@/types';
 import { sfxEngine } from '@/lib/audio-sfx';
-import Link from 'next/link';
 
 interface DynamicEventPageProps {
   params: Promise<{ eventId: string }>;
@@ -102,6 +102,9 @@ export default function DynamicEventGuestPage({ params }: DynamicEventPageProps)
   };
 
   const activePromptText = prompts[promptIndex]?.promptText || 'Share a favorite memory with the couple!';
+  const stickerStage =
+    step === 1 ? 'typing' : step === 2 ? 'prompt' : step === 3 ? 'recording' : step === 4 ? 'photo' : 'stuck';
+  const coupleLabel = eventConfig?.coupleNames || DEFAULT_EVENT.coupleNames;
 
   return (
     <main className="min-h-screen bg-stone-950 text-stone-100 flex flex-col justify-between py-6 px-4 sm:px-6 max-w-xl mx-auto w-full font-sans">
@@ -134,7 +137,10 @@ export default function DynamicEventGuestPage({ params }: DynamicEventPageProps)
       </div>
 
       {step === 1 && (
-        <div className="my-auto space-y-6 bg-stone-900 border border-stone-800 p-7 rounded-3xl shadow-2xl">
+        <div className="my-auto space-y-5">
+          {/* Live sticker preview - being written as you type */}
+          <StickerLabel guestName={guestName} promptText={undefined} stage="typing" coupleNames={coupleLabel} isWriting={guestName.length > 0} />
+          <div className="space-y-6 bg-stone-900 border border-stone-800 p-7 rounded-3xl shadow-2xl">
           <div className="text-center space-y-2">
             <div className="w-12 h-12 rounded-full bg-stone-800 text-amber-200 border border-stone-700 flex justify-center items-center mx-auto">
               <UserCheck className="w-6 h-6" />
@@ -162,11 +168,14 @@ export default function DynamicEventGuestPage({ params }: DynamicEventPageProps)
               Continue
             </button>
           </form>
+          </div>
         </div>
       )}
 
       {step === 2 && (
         <div className="my-auto space-y-5">
+          {/* Live sticker - name + chosen prompt being written */}
+          <StickerLabel guestName={guestName} promptText={activePromptText} stage="prompt" coupleNames={coupleLabel} />
           <div className="bg-stone-900 border border-stone-800 p-6 rounded-3xl shadow-xl text-center space-y-4">
             <p className="text-xs text-stone-400 font-sans uppercase tracking-widest">
               What would you like to talk about?
@@ -220,12 +229,18 @@ export default function DynamicEventGuestPage({ params }: DynamicEventPageProps)
             onAudioSubmitted={handleAudioSubmitted}
             selectedPrompt={selectedPrompt}
             guestName={guestName}
+            coupleNames={coupleLabel}
+            stickerStage={stickerStage}
           />
         </div>
       )}
 
       {step === 4 && (
         <div className="my-auto space-y-5">
+          {/* Sticker animates as stuck on cassette in this phase */}
+          <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="flex justify-center">
+            <StickerLabel guestName={guestName} promptText={selectedPrompt} stage="stuck" coupleNames={coupleLabel} />
+          </motion.div>
           <div className="bg-stone-900 border border-stone-800 p-4 rounded-2xl text-center space-y-1">
             <p className="text-xs font-serif text-amber-200 tracking-widest uppercase">OPTIONAL</p>
             <h2 className="text-lg font-serif font-bold text-stone-100">Attach a Photo</h2>
@@ -256,7 +271,9 @@ export default function DynamicEventGuestPage({ params }: DynamicEventPageProps)
       )}
 
       {step === 5 && (
-        <div className="my-auto bg-stone-900 border border-stone-800 p-8 rounded-3xl text-center space-y-5 shadow-2xl">
+        <div className="my-auto space-y-5">
+          <StickerLabel guestName={guestName} promptText={selectedPrompt} stage="stuck" coupleNames={coupleLabel} />
+          <div className="bg-stone-900 border border-stone-800 p-8 rounded-3xl text-center space-y-5 shadow-2xl">
           <div className="w-16 h-16 bg-emerald-500/20 text-emerald-400 rounded-full flex justify-center items-center mx-auto border border-emerald-500/40">
             <CheckCircle2 className="w-10 h-10" />
           </div>
@@ -273,6 +290,7 @@ export default function DynamicEventGuestPage({ params }: DynamicEventPageProps)
             >
               Record Another 🎙️
             </button>
+          </div>
           </div>
         </div>
       )}

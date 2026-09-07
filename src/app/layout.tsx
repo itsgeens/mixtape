@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Cormorant_Garamond, Plus_Jakarta_Sans } from "next/font/google";
+import { Cormorant_Garamond, Plus_Jakarta_Sans, Caveat } from "next/font/google";
 import "./globals.css";
 
 const cormorant = Cormorant_Garamond({
@@ -11,6 +11,12 @@ const cormorant = Cormorant_Garamond({
 const jakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
   variable: "--font-sans",
+});
+
+const caveat = Caveat({
+  weight: ["400", "500", "700"],
+  subsets: ["latin"],
+  variable: "--font-hand",
 });
 
 export const metadata: Metadata = {
@@ -39,7 +45,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${cormorant.variable} ${jakarta.variable} h-full antialiased dark`}
+      className={`${cormorant.variable} ${jakarta.variable} ${caveat.variable} h-full antialiased dark`}
     >
       <body className="min-h-full flex flex-col font-sans bg-stone-950 text-stone-100 selection:bg-stone-700 selection:text-white">
         {children}

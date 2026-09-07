@@ -10,12 +10,16 @@ interface CassetteDeckProps {
   onAudioSubmitted: (audioBlob: Blob, duration: number) => void;
   selectedPrompt?: string;
   guestName?: string;
+  coupleNames?: string;
+  stickerStage?: 'typing' | 'prompt' | 'recording' | 'photo' | 'stuck';
 }
 
 export const CassetteDeck: React.FC<CassetteDeckProps> = ({
   onAudioSubmitted,
   selectedPrompt,
   guestName,
+  coupleNames,
+  stickerStage = 'recording',
 }) => {
   const {
     recordingState,
@@ -83,20 +87,16 @@ export const CassetteDeck: React.FC<CassetteDeckProps> = ({
         </div>
       )}
 
-      {/* THE CASSETTE TAPE */}
+      {/* THE CASSETTE TAPE - now with live handwritten sticker */}
       <SpinningReels
         state={isPlayingReview ? 'playing' : recordingState}
         progressPercent={Math.min(100, (recordingTime / 180) * 100)}
+        guestName={guestName}
+        promptText={selectedPrompt}
+        stickerStage={recordingState === 'recording' ? 'recording' : stickerStage}
+        showSticker={true}
+        coupleNames={coupleNames}
       />
-
-      {/* Selected Prompt */}
-      {selectedPrompt && (
-        <div className="text-center px-4">
-          <p className="text-xs font-serif italic text-stone-400 leading-relaxed">
-            &ldquo;{selectedPrompt}&rdquo;
-          </p>
-        </div>
-      )}
 
       {/* Timer & Status */}
       <div className="text-center">
