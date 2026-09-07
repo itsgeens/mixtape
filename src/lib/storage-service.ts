@@ -2,7 +2,9 @@ import { createClient } from '@supabase/supabase-js';
 import { Recording, Prompt, EventConfig } from '@/types';
 import { DEFAULT_PROMPTS } from './prompts-data';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const rawSupabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+// Strip trailing /rest/v1/ if user pasted full REST URL — client expects base project URL
+const supabaseUrl = rawSupabaseUrl.replace(/\/rest\/v1\/?$/, '').replace(/\/$/, '');
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
 export const supabase = (supabaseUrl && supabaseAnonKey)

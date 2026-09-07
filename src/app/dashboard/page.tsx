@@ -2,13 +2,19 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Disc3, Heart, ArrowLeft, Download, QrCode, RefreshCw } from 'lucide-react';
+import { Disc3, Heart, ArrowLeft, Download, QrCode, RefreshCw, Lock, LogOut } from 'lucide-react';
 import { MasterTapePlayer } from '@/components/playback/MasterTapePlayer';
 import { InteractiveTimeline } from '@/components/playback/InteractiveTimeline';
 import { fetchRecordings } from '@/lib/storage-service';
 import { Recording } from '@/types';
 
+const ADMIN_PASSWORD = process.env.NEXT_PUBLIC_ADMIN_PASSWORD || 'mixtape2026';
+const AUTH_STORAGE_KEY = 'mixtape_admin_auth';
+
 export default function MasterTapeDashboardPage() {
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [passwordInput, setPasswordInput] = useState<string>('');
+  const [authError, setAuthError] = useState<string>('');
   const [recordings, setRecordings] = useState<Recording[]>([]);
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -28,11 +34,56 @@ export default function MasterTapeDashboardPage() {
   };
 
   useEffect(() => {
-    loadRecordingsData();
+    if (typeof window !== 'undefined' && sessionStorage.getItem(AUTH_STORAGE_KEY) === 'authenticated') {
+      setIsAuthenticated(true);
+    }
   }, []);
+
+  useEffect(() => {
+    if (isAuthenticated) loadRecordingsData();
+  }, [isAuthenticated]);
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (passwordInput === ADMIN_PASSWORD) {
+      setIsAuthenticated(true);
+      sessionStorage.setItem(AUTH_STORAGE_KEY, 'authenticated');
+      setAuthError('');
+    } else {
+      setAuthError('Incorrect password.');
+    }
+  };
+
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    sessionStorage.removeItem(AUTH_STORAGE_KEY);
+    setPasswordInput('');
+  };
 
   const totalSeconds = recordings.reduce((sum, r) => sum + (r.duration || 0), 0);
   const totalMinutes = Math.round(totalSeconds / 60);
+
+  if (!isAuthenticated) {
+    return (
+      <main className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-center items-center py-8 px-4 max-w-md mx-auto w-full">
+        <div className="w-full bg-slate-900 border border-slate-800 rounded-2xl p-8 shadow-2xl space-y-6">
+          <div className="text-center space-y-3">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-rose-600 to-amber-400 flex justify-center items-center mx-auto shadow-lg">
+              <Lock className="w-7 h-7 text-white" />
+            </div>
+            <h1 className="text-xl font-black text-white">Admin Access</h1>
+            <p className="text-xs text-slate-400">Enter password to view dashboard.</p>
+          </div>
+          <form onSubmit={handleLogin} className="space-y-4">
+            <input type="password" value={passwordInput} onChange={(e) => setPasswordInput(e.target.value)} placeholder="Password" className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3.5 text-sm text-slate-100 focus:outline-none focus:border-amber-500" autoFocus />
+            {authError && <p className="text-xs text-rose-400 text-center">{authError}</p>}
+            <button type="submit" className="w-full py-3.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-sm rounded-xl shadow-lg transition-all">Unlock Dashboard</button>
+          </form>
+          <Link href="/" className="block text-center text-xs text-slate-500 hover:text-slate-300">← Back to Home</Link>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-slate-950 text-slate-100 py-8 px-4 sm:px-6 max-w-4xl mx-auto w-full">
@@ -61,13 +112,19 @@ export default function MasterTapeDashboardPage() {
           </div>
         </div>
 
-        <button
-          onClick={loadRecordingsData}
-          className="bg-slate-900 hover:bg-slate-800 text-amber-400 border border-amber-500/30 text-xs px-3 py-2 rounded-lg flex items-center space-x-1.5 transition-all"
-        >
-          <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
-          <span className="hidden sm:inline">Refresh Tape</span>
-        </button>
+        <div className="flex space-x-2">
+          <button
+            onClick={loadRecordingsData}
+            className="bg-slate-900 hover:bg-slate-800 text-amber-400 border border-amber-500/30 text-xs px-3 py-2 rounded-lg flex items-center space-x-1.5 transition-all"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline">Refresh Tape</span>
+          </button>
+          <button onClick={handleLogout} className="bg-slate-900 hover:bg-slate-800 text-slate-400 border border-slate-700 text-xs px-3 py-2 rounded-lg flex items-center space-x-1.5 transition-all">
+            <LogOut className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Lock</span>
+          </button>
+        </div>
       </header>
 
       {/* Overview Stats Bar */}
