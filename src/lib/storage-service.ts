@@ -23,6 +23,129 @@ export const DEFAULT_EVENT: EventConfig = {
   eventDate: '2026-09-15',
 };
 
+export function slugify(input: string): string {
+  return input
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .replace(/--+/g, '-');
+}
+
+// ----------------------------------------------------
+// EVENTS MANAGEMENT
+// ----------------------------------------------------
+function getLocalEvents(): EventConfig[] {
+  if (typeof window === 'undefined') return [];
+  const stored = localStorage.getItem(LOCAL_EVENTS_KEY);
+  if (stored) {
+    try {
+      return JSON.parse(stored);
+    } catch {
+      return [];
+    }
+  }
+  return [];
+}
+
+function saveLocalEvents(events: EventConfig[]) {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(LOCAL_EVENTS_KEY, JSON.stringify(events));
+}
+
+export async function fetchEvents(): Promise<EventConfig[]> {
+  if (supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('events')
+        .select('*')
+        .order('created_at', { ascending: true });
+      if (!error && data) {
+        const mapped: EventConfig[] = data.map((e) => ({
+          id: e.id,
+          slug: e.slug,
+          coupleNames: e.couple_names,
+          eventDate: e.event_date,
+          createdAt: e.created_at,
+        }));
+        // Also sync to local for fallback
+        if (typeof window !== 'undefined' && mapped.length > 0) {
+          saveLocalEvents(mapped);
+        }
+        if (mapped.length > 0) return mapped;
+      }
+    } catch (err) {
+      console.warn('Supabase fetchEvents failed, using local fallback:', err);
+    }
+  }
+  const local = getLocalEvents();
+  if (local.length > 0) return local;
+  // Seed with default if nothing exists
+  return [DEFAULT_EVENT];
+}
+
+export async function createEvent(input: {
+  coupleNames: string;
+  eventDate: string;
+  slug?: string;
+}): Promise<EventConfig> {
+  const slug = slugify(input.slug || input.coupleNames);
+  const id = slug;
+  const newEvent: EventConfig = {
+    id,
+    slug,
+    coupleNames: input.coupleNames.trim(),
+    eventDate: input.eventDate,
+    createdAt: new Date().toISOString(),
+  };
+
+  if (supabase) {
+    try {
+      const { error } = await supabase.from('events').insert([
+        {
+          id,
+          slug,
+          couple_names: newEvent.coupleNames,
+          event_date: newEvent.eventDate,
+        },
+      ]);
+      if (error) {
+        // If slug conflict, throw to surface to UI
+        if (error.message.includes('duplicate') || error.code === '23505') {
+          throw new Error(`An event with slug "${slug}" already exists. Try a different name.`);
+        }
+        console.warn('Supabase createEvent failed, saving locally:', error);
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes('already exists')) throw err;
+      console.warn('Supabase createEvent exception, using local fallback:', err);
+    }
+  }
+
+  // Always persist locally as mirror
+  if (typeof window !== 'undefined') {
+    const existing = getLocalEvents();
+    // Avoid duplicate
+    if (!existing.find((e) => e.id === id)) {
+      // If we had only default and now creating real events, keep default + new
+      const updated = [...existing, newEvent];
+      // If existing was empty (seeded default not persisted), include default
+      if (updated.length === 1 && newEvent.id !== DEFAULT_EVENT.id) {
+        updated.unshift(DEFAULT_EVENT);
+      }
+      saveLocalEvents(updated);
+    }
+  }
+
+  return newEvent;
+}
+
+export async function fetchEventById(eventId: string): Promise<EventConfig | null> {
+  const events = await fetchEvents();
+  return events.find((e) => e.id === eventId || e.slug === eventId) || null;
+}
+
 // ----------------------------------------------------
 // PROMPTS MANAGEMENT
 // ----------------------------------------------------
