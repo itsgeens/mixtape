@@ -111,13 +111,16 @@ export default function AdminDashboardPage() {
     setNewSlugPreview(slugify(newCoupleNames));
   }, [newCoupleNames]);
 
-  // QR generation per selected event
+  // QR generation per selected event - uses production URL to avoid Vercel preview SSO login
+  const [guestUrl, setGuestUrl] = useState<string>('');
   useEffect(() => {
     if (!eventId || typeof window === 'undefined') return;
-    const origin = window.location.origin;
-    const guestUrl = `${origin}/e/${eventId}`;
-    QRCode.toDataURL(guestUrl, { width: 300, margin: 2, color: { dark: '#020617', light: '#ffffff' } })
-      .then((url) => setQrDataUrl(url))
+    const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || '').replace(/\/$/, '');
+    const origin = siteUrl || window.location.origin;
+    const url = `${origin}/e/${eventId}`;
+    setGuestUrl(url);
+    QRCode.toDataURL(url, { width: 300, margin: 2, color: { dark: '#020617', light: '#ffffff' } })
+      .then((u) => setQrDataUrl(u))
       .catch((err) => console.error('QR code generation error:', err));
   }, [eventId]);
 
@@ -475,7 +478,12 @@ export default function AdminDashboardPage() {
               <div className="space-y-1">
                 <h3 className="text-lg font-black text-white">QR for {selectedEvent.coupleNames}</h3>
                 <p className="text-xs text-slate-400 max-w-md mx-auto">Print this for reception tables. Guests scan to open <span className="font-mono text-amber-400">/e/{selectedEvent.id}</span></p>
-                <p className="text-[11px] font-mono text-slate-500">{typeof window !== 'undefined' ? `${window.location.origin}/e/${selectedEvent.id}` : ''}</p>
+                <p className="text-[11px] font-mono text-slate-500 break-all">{guestUrl}</p>
+                {guestUrl.includes('vercel.app') && guestUrl.includes('-') && guestUrl.match(/vercel\.app\/e\//) && guestUrl.includes('gino-tantuico') && (
+                  <p className="text-[11px] text-amber-400 bg-amber-950/30 border border-amber-500/30 rounded-lg px-3 py-2 mt-2 max-w-md mx-auto">
+                    ⚠️ This is a preview URL requiring Vercel login. Set <span className="font-mono">NEXT_PUBLIC_SITE_URL</span> to your production domain (e.g. https://mixtape.vercel.app) in Vercel → Settings → Environment Variables and redeploy to generate public QR codes.
+                  </p>
+                )}
               </div>
               {qrDataUrl && (
                 <div className="flex flex-col items-center">
