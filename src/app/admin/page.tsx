@@ -38,8 +38,8 @@ export default function AdminDashboardPage() {
   const [isCreating, setIsCreating] = useState<boolean>(false);
   const [createError, setCreateError] = useState<string>('');
 
-  const selectedEvent = events.find((e) => e.id === selectedEventId) || events[0] || null;
-  const eventId = selectedEvent?.id || '';
+  const selectedEvent = events.find((e) => e.id === selectedEventId) || null;
+  const eventId = selectedEvent?.id || selectedEventId || '';
 
   // Auth check
   useEffect(() => {
@@ -132,7 +132,7 @@ export default function AdminDashboardPage() {
       setSelectedEventId(created.id);
       setNewCoupleNames('');
       setNewEventDate('');
-      setActiveTab('tape');
+      setActiveTab('qrcode');
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Failed to create event';
       setCreateError(msg);

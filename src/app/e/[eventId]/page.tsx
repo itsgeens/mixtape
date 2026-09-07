@@ -6,8 +6,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Disc3, Heart, CheckCircle2, ArrowRight, UserCheck, ShieldCheck, RefreshCw } from 'lucide-react';
 import { CassetteDeck } from '@/components/cassette/CassetteDeck';
 import { PolaroidCapture } from '@/components/polaroid/PolaroidCapture';
-import { uploadRecording, fetchPrompts, DEFAULT_EVENT } from '@/lib/storage-service';
-import { Prompt } from '@/types';
+import { uploadRecording, fetchPrompts, fetchEventById, DEFAULT_EVENT } from '@/lib/storage-service';
+import { Prompt, EventConfig } from '@/types';
 import { sfxEngine } from '@/lib/audio-sfx';
 import Link from 'next/link';
 
@@ -29,8 +29,12 @@ export default function DynamicEventGuestPage({ params }: DynamicEventPageProps)
 
   const [step, setStep] = useState<1 | 2 | 3 | 4 | 5>(1);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [eventConfig, setEventConfig] = useState<EventConfig | null>(null);
 
   useEffect(() => {
+    fetchEventById(eventId).then((ev) => {
+      if (ev) setEventConfig(ev);
+    });
     fetchPrompts(eventId).then((pList) => {
       setPrompts(pList);
       if (pList.length > 0) {
@@ -109,7 +113,7 @@ export default function DynamicEventGuestPage({ params }: DynamicEventPageProps)
               <Heart className="w-4 h-4 text-rose-500 fill-rose-500 inline" />
             </h1>
             <p className="text-[11px] font-serif tracking-widest text-amber-200 uppercase">
-              {DEFAULT_EVENT.coupleNames}&apos;S WEDDING
+              {(eventConfig?.coupleNames || DEFAULT_EVENT.coupleNames).toUpperCase()}&apos;S WEDDING
             </p>
           </div>
         </div>
